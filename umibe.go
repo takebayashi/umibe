@@ -27,7 +27,9 @@ func main() {
 	}()
 	for {
 		_, _, err = p.SendMessage(getMessage())
-		log.Fatalln(err)
+		if err != nil {
+			log.Fatalln(err)
+		}
 	}
 }
 
