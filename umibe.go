@@ -5,6 +5,7 @@ import (
 	"github.com/Shopify/sarama"
 	"log"
 	"strings"
+	"time"
 )
 
 var (
@@ -25,8 +26,17 @@ func main() {
 			log.Fatalln(err)
 		}
 	}()
+	var count int64 = 0
+	ti := time.NewTicker(time.Second)
+	go func() {
+		for range ti.C {
+			log.Println(count)
+			count = 0
+		}
+	}()
 	for {
 		_, _, err = p.SendMessage(getMessage())
+		count++
 		if err != nil {
 			log.Fatalln(err)
 		}
