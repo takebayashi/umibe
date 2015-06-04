@@ -1,9 +1,11 @@
 package main
 
 import (
+	"bufio"
 	"flag"
 	"github.com/Shopify/sarama"
 	"log"
+	"os"
 	"strings"
 	"time"
 )
@@ -11,7 +13,7 @@ import (
 var (
 	brokers = flag.String("brokers", "", "Kafka broker list, comma-separated")
 	topic   = flag.String("topic", "", "topic name")
-	size    = flag.Int("size", 10, "message size")
+	input   = flag.String("input", "", "file name to input")
 )
 
 func main() {
@@ -35,21 +37,31 @@ func main() {
 		}
 	}()
 	for {
-		_, _, err = p.SendMessage(getMessage())
-		count++
+		count += sendAll(p)
+	}
+}
+
+func sendAll(p sarama.SyncProducer) int64 {
+	var c int64 = 0
+	f, err := os.Open(*input)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	defer f.Close()
+	sc := bufio.NewScanner(f)
+	for sc.Scan() {
+		m := &sarama.ProducerMessage{
+			Topic: *topic,
+			Value: sarama.StringEncoder(sc.Text()),
+		}
+		_, _, err = p.SendMessage(m)
+		c++
 		if err != nil {
 			log.Fatalln(err)
 		}
 	}
-}
-
-func getMessage() *sarama.ProducerMessage {
-	s := ""
-	for i := 0; i < *size; i++ {
-		s += "a"
+	if err := sc.Err(); err != nil {
+		log.Fatalln(err)
 	}
-	return &sarama.ProducerMessage{
-		Topic: *topic,
-		Value: sarama.StringEncoder(s),
-	}
+	return c
 }
