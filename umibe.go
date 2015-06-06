@@ -31,9 +31,10 @@ func main() {
 	var count int64 = 0
 	ti := time.NewTicker(time.Second)
 	go func() {
+		var last int64 = 0
 		for range ti.C {
-			log.Println(count)
-			count = 0
+			log.Printf("qps:%d\ttotal:%d\n", count-last, count)
+			last = count
 		}
 	}()
 	for {
