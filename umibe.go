@@ -11,9 +11,10 @@ import (
 )
 
 var (
-	brokers = flag.String("brokers", "", "Kafka broker list, comma-separated")
-	topic   = flag.String("topic", "", "topic name")
-	input   = flag.String("input", "", "file name to input")
+	brokers  = flag.String("brokers", "", "Kafka broker list, comma-separated")
+	topic    = flag.String("topic", "", "topic name")
+	input    = flag.String("input", "", "file name to input")
+	sendsRaw = flag.Bool("raw", false, "sending without extra encoding")
 )
 
 func main() {
@@ -51,9 +52,15 @@ func sendAll(p sarama.SyncProducer) int64 {
 	defer f.Close()
 	sc := bufio.NewScanner(f)
 	for sc.Scan() {
+		var encoder sarama.Encoder
+		if *sendsRaw {
+			encoder = sarama.ByteEncoder(sc.Bytes())
+		} else {
+			encoder = sarama.StringEncoder(sc.Text())
+		}
 		m := &sarama.ProducerMessage{
 			Topic: *topic,
-			Value: sarama.StringEncoder(sc.Text()),
+			Value: encoder,
 		}
 		_, _, err = p.SendMessage(m)
 		c++
