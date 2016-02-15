@@ -14,6 +14,7 @@ var (
 	brokers  = flag.String("brokers", "", "Kafka broker list, comma-separated")
 	topic    = flag.String("topic", "", "topic name")
 	input    = flag.String("input", "", "file name to input")
+	key      = flag.String("key", "", "message key")
 	sendsRaw = flag.Bool("raw", false, "sending without extra encoding")
 )
 
@@ -52,15 +53,19 @@ func sendAll(p sarama.SyncProducer) int64 {
 	defer f.Close()
 	sc := bufio.NewScanner(f)
 	for sc.Scan() {
-		var encoder sarama.Encoder
+		var ke, ve sarama.Encoder
+		if *key != "" {
+			ke = sarama.StringEncoder(*key)
+		}
 		if *sendsRaw {
-			encoder = sarama.ByteEncoder(sc.Bytes())
+			ve = sarama.ByteEncoder(sc.Bytes())
 		} else {
-			encoder = sarama.StringEncoder(sc.Text())
+			ve = sarama.StringEncoder(sc.Text())
 		}
 		m := &sarama.ProducerMessage{
 			Topic: *topic,
-			Value: encoder,
+			Key:   ke,
+			Value: ve,
 		}
 		_, _, err = p.SendMessage(m)
 		c++
